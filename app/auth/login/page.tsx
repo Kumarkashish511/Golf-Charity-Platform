@@ -19,24 +19,35 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(error.message)
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError || !authData?.user) {
+        const message = authError?.message || 'Unable to sign in, please check your credentials.'
+        setError(message)
+        setLoading(false)
+        return
+      }
+
+      // Check role and redirect (profile may not exist yet in special cases)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single()
+
+      if (profileError) {
+        console.warn('Profile lookup failed after login:', profileError.message)
+      }
+
+      if (profileData?.role === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/dashboard')
+      }
+    } catch (unexpectedError) {
+      console.error('Unexpected login error:', unexpectedError)
+      setError('Something went wrong. Please try again.')
       setLoading(false)
-      return
-    }
-
-    // Check role and redirect
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .single()
-
-    if (profile?.role === 'admin') {
-      router.push('/admin')
-    } else {
-      router.push('/dashboard')
     }
   }
 

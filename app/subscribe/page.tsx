@@ -15,16 +15,32 @@ export default function SubscribePage() {
   }
 
   const handleSubscribe = async () => {
-    setLoading(true)
+  setLoading(true)
+  try {
     const res = await fetch('/api/stripe/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan: selected }),
     })
-    const { url } = await res.json()
-    if (url) window.location.href = url
-    else setLoading(false)
+    
+    const data = await res.json()
+    console.log('Checkout response:', data)
+    
+    if (data.url) {
+      window.location.href = data.url
+    } else if (data.error === 'Unauthorized') {
+      // Not logged in - redirect to login first
+      window.location.href = '/auth/login'
+    } else {
+      alert('Error: ' + (data.error || 'Unknown error'))
+      setLoading(false)
+    }
+  } catch (err) {
+    console.error('Subscribe error:', err)
+    alert('Network error - check console')
+    setLoading(false)
   }
+}
 
   const features = [
     'Monthly prize draw entries',

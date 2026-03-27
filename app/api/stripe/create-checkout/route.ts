@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, PLANS } from '@/lib/stripe'
-import { createServerClient } from '@/lib/supabase-server'
+import { createBrowserClient } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createBrowserClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    console.log('Auth user:', user?.id, 'Error:', authError?.message)
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -15,7 +18,6 @@ export async function POST(req: NextRequest) {
     const planData = PLANS[plan as keyof typeof PLANS]
     if (!planData) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
-    // Get or create Stripe customer
     const { data: sub } = await supabase
       .from('subscriptions')
       .select('stripe_customer_id')

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # GolfGives — Golf Charity Subscription Platform
 
 A full-stack Next.js application built as per the Digital Heroes PRD.
@@ -133,3 +134,6 @@ After setup:
 - ✅ Draw engine (random + inverse-frequency algorithmic)
 - ✅ Middleware-based route protection
 - ✅ TypeScript throughout
+=======
+# Golf-Charity-Platform
+>>>>>>> 7fcbdd6aec38f48475baba47172b3ab1c9775074
