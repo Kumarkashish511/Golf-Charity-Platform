@@ -1,139 +1,158 @@
-<<<<<<< HEAD
-# GolfGives — Golf Charity Subscription Platform
+# ⛳ GolfGives — Golf Charity Subscription Platform
 
-A full-stack Next.js application built as per the Digital Heroes PRD.
+> **Live Demo:** [golf-charity-platform-peach-five.vercel.app](https://golf-charity-platform-peach-five.vercel.app)
 
-## Tech Stack
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Storage)
-- **Payments**: Stripe (Subscriptions + Webhooks)
-- **Deployment**: Vercel
+A full-stack subscription platform where golfers track their Stableford scores, enter monthly prize draws, and automatically support the charities that matter to them.
 
 ---
 
-## Setup Instructions
+## 🚀 Tech Stack
 
-### Step 1: Install Dependencies
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS |
+| Backend | Supabase (PostgreSQL + Auth + Storage) |
+| Payments | Stripe (Subscriptions + Webhooks) |
+| Deployment | Vercel |
 
+---
+
+## ✨ Features
+
+### 👤 User
+- Sign up / Login with email
+- Choose a charity & set donation % at signup
+- Subscribe Monthly (£19.99) or Yearly (£199.99) via Stripe
+- Enter Stableford scores (1–45, rolling last 5 logic)
+- View published prize draws & winning numbers
+- Track winnings history & payment status
+- Cancel subscription anytime
+- Adjust charity donation % from settings
+
+### 🛠️ Admin
+- Live dashboard with platform-wide stats
+- User management (view/edit scores, manage subscriptions)
+- Draw system (random + algorithmic simulation & publish)
+- Prize pool auto-calculation (40/35/25 split)
+- Jackpot rollover logic
+- Charity management (add/edit/delete/feature)
+- Winner verification (approve/reject/mark paid)
+
+---
+
+## 🖥️ User Dashboard Preview
+
+After signing up and subscribing, users get access to their personal dashboard:
+
+- 📊 **Score Tracker** — Enter and view your last 5 Stableford scores
+- 🏆 **Prize Draw** — See your entry status for the current monthly draw
+- 💚 **Charity Impact** — Track how much your subscription has donated
+- 🔔 **Winnings** — Get notified when you win and track payment status
+
+---
+
+## ⚙️ Local Setup
+
+### 1. Install Dependencies
 ```bash
 npm install
 ```
 
-### Step 2: Set Up Supabase (NEW account required)
+### 2. Set Up Supabase
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Go to **SQL Editor** → paste and run `supabase-schema.sql`
+3. Go to **Project Settings → API** and copy your keys
 
-1. Go to [supabase.com](https://supabase.com) and create a **brand new account**
-2. Create a **new project** (choose any region, note your database password)
-3. Go to **SQL Editor** in the Supabase dashboard
-4. Copy the entire contents of `supabase-schema.sql` and run it
-5. Go to **Project Settings → API**:
-   - Copy `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
-   - Copy `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - Copy `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
+### 3. Set Up Stripe
+1. Go to [stripe.com](https://stripe.com) and create an account
+2. Go to **Developers → API Keys** and copy your keys
+3. Create two products in **Products → Add Product**:
+   - `GolfGives Monthly` → £19.99/month
+   - `GolfGives Yearly` → £199.99/year
+4. Copy both Price IDs
 
-### Step 3: Set Up Stripe (NEW account required)
-
-1. Go to [stripe.com](https://stripe.com) and create a **new account**
-2. Go to **Developers → API Keys**:
-   - Copy Publishable key → `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-   - Copy Secret key → `STRIPE_SECRET_KEY`
-3. Create subscription prices in Stripe Dashboard:
-   - Go to **Products** → **Add Product**
-   - Name: "GolfGives Monthly" → Add price: £19.99/month → Copy Price ID → `STRIPE_MONTHLY_PRICE_ID`
-   - Name: "GolfGives Yearly" → Add price: £199.99/year → Copy Price ID → `STRIPE_YEARLY_PRICE_ID`
-
-### Step 4: Configure Environment Variables
-
+### 4. Configure Environment Variables
 ```bash
 cp .env.local.example .env.local
 ```
 
-Edit `.env.local` with all your keys from Steps 2 and 3.
+Fill in `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-### Step 5: Run Locally
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_MONTHLY_PRICE_ID=price_...
+STRIPE_YEARLY_PRICE_ID=price_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 5. Run Locally
 ```bash
 npm run dev
 ```
-
 Open [http://localhost:3000](http://localhost:3000)
 
-### Step 6: Create Admin User
-
-1. Go to [http://localhost:3000/auth/signup](http://localhost:3000/auth/signup)
-2. Sign up with email: `admin@golfgives.com`, password: `Admin123!`
-3. Go to Supabase SQL Editor and run:
-   ```sql
-   UPDATE profiles SET role = 'admin' WHERE email = 'admin@golfgives.com';
-   ```
-4. Log in — you'll be redirected to `/admin`
-
-### Step 7: Set Up Stripe Webhook (for subscriptions to work)
-
+### 6. Set Up Stripe Webhook (Local)
 ```bash
-# Install Stripe CLI
 stripe listen --forward-to localhost:3000/api/stripe/webhook
 ```
-
-Copy the webhook signing secret → `STRIPE_WEBHOOK_SECRET`
+Copy the webhook signing secret into `STRIPE_WEBHOOK_SECRET`
 
 ---
 
-## Deploy to Vercel (NEW account required)
+## 🌍 Deployment
 
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) → New account
-3. Import your GitHub repository
-4. Add all environment variables from `.env.local`
-5. Add `NEXT_PUBLIC_APP_URL` = your Vercel deployment URL
-6. Deploy!
-7. After deploy, set up Stripe webhook for your live URL:
-   - Go to Stripe Dashboard → Developers → Webhooks → Add endpoint
+The app is live at:
+**[https://golf-charity-platform-peach-five.vercel.app](https://golf-charity-platform-peach-five.vercel.app)**
+
+To deploy your own:
+1. Push code to GitHub
+2. Import repo at [vercel.com](https://vercel.com)
+3. Add all environment variables
+4. Set `NEXT_PUBLIC_APP_URL` to your Vercel URL
+5. Deploy ✅
+6. Add Stripe webhook endpoint in Stripe Dashboard:
    - URL: `https://your-app.vercel.app/api/stripe/webhook`
-   - Events to listen to: `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.deleted`
-   - Copy signing secret → Update `STRIPE_WEBHOOK_SECRET` in Vercel env vars
+   - Events: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
 
 ---
 
-## Test Credentials
+## 🧪 Testing Payments
 
-After setup:
-- **Admin**: admin@golfgives.com / Admin123!
-- **Test User**: Create via /auth/signup
-- **Stripe test card**: 4242 4242 4242 4242, any future date, any CVC
+Use Stripe's test card to simulate a subscription:
+
+```
+Card Number : 4242 4242 4242 4242
+Expiry      : Any future date (e.g. 12/29)
+CVC         : Any 3 digits (e.g. 123)
+```
 
 ---
 
-## Features Implemented
+## 📁 Project Structure
 
-### User Features
-- ✅ Sign up / Login
-- ✅ Subscription (Monthly/Yearly via Stripe)
-- ✅ Charity selection at signup + adjustable % donation
-- ✅ Score entry (1-45 Stableford, rolling last 5 logic)
-- ✅ Score deletion
-- ✅ View published draws + winning numbers
-- ✅ View winnings history + payment status
-- ✅ Cancel subscription
-- ✅ Adjust charity percentage from settings
+```
+golf-charity-platform/
+├── app/
+│   ├── api/          # API routes (Stripe, Supabase)
+│   ├── auth/         # Login & Signup pages
+│   ├── dashboard/    # User dashboard
+│   ├── admin/        # Admin panel
+│   └── subscribe/    # Subscription page
+├── lib/
+│   ├── supabase.ts   # Supabase client
+│   └── stripe.ts     # Stripe client + plans
+├── components/       # Reusable UI components
+└── supabase-schema.sql
+```
 
-### Admin Features
-- ✅ Overview dashboard with live stats
-- ✅ User management (view/edit scores, toggle subscriptions)
-- ✅ Draw system (random + algorithmic, simulation + publish)
-- ✅ Prize pool auto-calculation (40/35/25 split)
-- ✅ Jackpot rollover logic
-- ✅ Charity management (add/edit/delete/feature)
-- ✅ Winner verification (approve/reject/mark paid)
-- ✅ Pending verification badge count
+---
 
-### Technical
-- ✅ Supabase auth + RLS policies
-- ✅ Stripe subscription lifecycle (webhooks)
-- ✅ Mobile-responsive design
-- ✅ JWT session via Supabase
-- ✅ Draw engine (random + inverse-frequency algorithmic)
-- ✅ Middleware-based route protection
-- ✅ TypeScript throughout
-=======
-# Golf-Charity-Platform
->>>>>>> 7fcbdd6aec38f48475baba47172b3ab1c9775074
+## 📄 License
+
+MIT — feel free to fork and build on top of this project.
