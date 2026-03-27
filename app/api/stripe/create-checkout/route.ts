@@ -4,11 +4,17 @@ import { createBrowserClient } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   try {
+    // Get auth token from request headers
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+
     const supabase = createBrowserClient()
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    console.log('Auth user:', user?.id, 'Error:', authError?.message)
+    let user = null
+    if (token) {
+      const { data } = await supabase.auth.getUser(token)
+      user = data.user
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,10 +31,9 @@ export async function POST(req: NextRequest) {
       .single()
 
     let customerId = sub?.stripe_customer_id
-
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email,
+        email: user.email!,
         metadata: { supabase_user_id: user.id },
       })
       customerId = customer.id
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (err: any) {
-    console.error('Stripe checkout error:', err)
+    console.error('Stripe error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

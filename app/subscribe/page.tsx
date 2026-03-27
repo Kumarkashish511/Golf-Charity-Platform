@@ -1,131 +1,198 @@
 'use client'
+
 import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { CheckCircle, Heart, Loader2, Star } from 'lucide-react'
+import { createBrowserClient } from '@/lib/supabase'
+import { PLANS } from '@/lib/stripe'
 
 export default function SubscribePage() {
-  const [selected, setSelected] = useState<'monthly' | 'yearly'>('monthly')
+  const [selected, setSelected] = useState<'monthly' | 'yearly'>('yearly')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
-  const plans = {
-    monthly: { price: '£19.99', period: '/month', total: '£19.99/mo', saving: null, priceId: 'monthly' },
-    yearly: { price: '£199.99', period: '/year', total: '£16.67/mo', saving: 'Save £39.89', priceId: 'yearly' },
-  }
+  const [error, setError] = useState('')
 
   const handleSubscribe = async () => {
-  setLoading(true)
-  try {
-    const res = await fetch('/api/stripe/create-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: selected }),
-    })
-    
-    const data = await res.json()
-    console.log('Checkout response:', data)
-    
-    if (data.url) {
-      window.location.href = data.url
-    } else if (data.error === 'Unauthorized') {
-      // Not logged in - redirect to login first
+    setLoading(true)
+    setError('')
+
+    const supabase = createBrowserClient()
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) {
       window.location.href = '/auth/login'
-    } else {
-      alert('Error: ' + (data.error || 'Unknown error'))
+      return
+    }
+
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ plan: selected }),
+      })
+
+      const data = await res.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setError(data.error || 'Something went wrong.')
+        setLoading(false)
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
       setLoading(false)
     }
-  } catch (err) {
-    console.error('Subscribe error:', err)
-    alert('Network error - check console')
-    setLoading(false)
   }
-}
 
-  const features = [
-    'Monthly prize draw entries',
-    'Stableford score tracking',
-    'Charity contribution',
-    'Winner verification system',
-    'Full dashboard access',
-    'Email notifications',
-  ]
+  const savings = Math.round(
+    ((PLANS.monthly.price * 12 - PLANS.yearly.price) / (PLANS.monthly.price * 12)) * 100
+  )
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
-              <Heart className="w-4 h-4 text-dark-900 fill-dark-900" />
-            </div>
-            <span className="font-display text-xl font-bold text-white">GolfGives</span>
-          </Link>
-          <h1 className="text-4xl font-bold text-white mb-3">Choose Your Plan</h1>
-          <p className="text-white/40">Both plans include everything. Yearly saves you more for charity.</p>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16 relative overflow-hidden"
+      style={{ background: '#080c0a' }}>
 
-        {/* Plan toggle */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {(['monthly', 'yearly'] as const).map(plan => (
+      {/* Background glow effects */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full opacity-20 blur-[120px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse, #22c55e 0%, transparent 70%)' }} />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-10 blur-[100px] pointer-events-none"
+        style={{ background: '#15803d' }} />
+
+      {/* Logo */}
+      <div className="flex items-center gap-3 mb-10">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+          style={{ background: '#22c55e' }}>⛳</div>
+        <span className="text-white font-bold text-xl tracking-tight">GolfGives</span>
+      </div>
+
+      {/* Heading */}
+      <div className="text-center mb-3">
+        <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">
+          Choose Your Plan
+        </h1>
+        <p className="text-white/50 text-base max-w-sm mx-auto">
+          Every subscription contributes to a charity pool. Play golf. Give back.
+        </p>
+      </div>
+
+      {/* Toggle */}
+      <div className="flex items-center gap-3 mt-8 mb-8">
+        <span className={`text-sm font-medium transition-colors ${selected === 'monthly' ? 'text-white' : 'text-white/40'}`}>Monthly</span>
+        <button
+          onClick={() => setSelected(selected === 'monthly' ? 'yearly' : 'monthly')}
+          className="relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none"
+          style={{ background: '#22c55e' }}
+        >
+          <div className={`absolute top-1 w-5 h-5 rounded-full bg-black transition-all duration-300 ${selected === 'yearly' ? 'left-8' : 'left-1'}`} />
+        </button>
+        <span className={`text-sm font-medium transition-colors ${selected === 'yearly' ? 'text-white' : 'text-white/40'}`}>
+          Yearly
+          <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
+            Save {savings}%
+          </span>
+        </span>
+      </div>
+
+      {/* Plan Cards */}
+      <div className="flex flex-col sm:flex-row gap-5 w-full max-w-2xl">
+        {(['monthly', 'yearly'] as const).map((plan) => {
+          const p = PLANS[plan]
+          const isSelected = selected === plan
+          const priceInPounds = (p.price / 100).toFixed(2)
+          const poolInPounds = (p.pool_contribution / 100).toFixed(2)
+
+          return (
             <button
               key={plan}
               onClick={() => setSelected(plan)}
-              className={`glass rounded-2xl p-6 text-left transition-all duration-200 ${
-                selected === plan ? 'border-brand-500/60 bg-brand-500/5' : 'hover:border-white/20'
-              }`}
+              className="relative flex-1 text-left rounded-2xl p-6 transition-all duration-300 focus:outline-none"
+              style={{
+                background: isSelected ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
+                border: isSelected ? '1.5px solid rgba(34,197,94,0.5)' : '1.5px solid rgba(255,255,255,0.07)',
+                boxShadow: isSelected ? '0 0 40px rgba(34,197,94,0.12)' : 'none',
+              }}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="font-semibold text-white capitalize mb-1">{plan}</div>
-                  {plans[plan].saving && (
-                    <span className="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">
-                      {plans[plan].saving}
-                    </span>
-                  )}
+              {/* Popular badge */}
+              {plan === 'yearly' && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: '#22c55e', color: '#000' }}>
+                  Most Popular
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 transition-all ${selected === plan ? 'border-brand-500 bg-brand-500' : 'border-white/20'}`}>
-                  {selected === plan && <div className="w-full h-full rounded-full flex items-center justify-center"><div className="w-2 h-2 bg-dark-900 rounded-full" /></div>}
+              )}
+
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-white font-semibold text-lg">{p.name}</span>
+                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                  style={{
+                    borderColor: isSelected ? '#22c55e' : 'rgba(255,255,255,0.2)',
+                    background: isSelected ? '#22c55e' : 'transparent'
+                  }}>
+                  {isSelected && <div className="w-2 h-2 rounded-full bg-black" />}
                 </div>
               </div>
-              <div className="text-3xl font-bold text-white">{plans[plan].price}</div>
-              <div className="text-white/40 text-sm">{plans[plan].period}</div>
-              <div className="text-white/30 text-xs mt-1">{plans[plan].total}</div>
+
+              {/* Price */}
+              <div className="mb-1">
+                <span className="text-white/40 text-sm">£</span>
+                <span className="text-white font-extrabold text-4xl">{priceInPounds.split('.')[0]}</span>
+                <span className="text-white/60 text-lg">.{priceInPounds.split('.')[1]}</span>
+                <span className="text-white/40 text-sm ml-1">/ {p.interval}</span>
+              </div>
+
+              {plan === 'yearly' && (
+                <p className="text-white/30 text-xs mb-4 line-through">
+                  £{(PLANS.monthly.price * 12 / 100).toFixed(2)} / year
+                </p>
+              )}
+              {plan === 'monthly' && <div className="mb-4" />}
+
+              {/* Divider */}
+              <div className="w-full h-px mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
+              {/* Features */}
+              <ul className="space-y-2.5">
+                {[
+                  `Min. ${p.charity_min_percent}% to your charity`,
+                  `£${poolInPounds} to community pool`,
+                  'Full tournament access',
+                  'Live leaderboard',
+                  'Charity impact dashboard',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-center gap-2.5 text-sm text-white/70">
+                    <span style={{ color: '#22c55e' }}>✓</span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
             </button>
-          ))}
-        </div>
-
-        {/* Features */}
-        <div className="glass rounded-2xl p-6 mb-6">
-          <div className="text-sm font-medium text-white/60 mb-4 flex items-center gap-2">
-            <Star className="w-4 h-4 text-brand-400" /> Everything included
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {features.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-white/70">
-                <CheckCircle className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                {f}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <button
-          onClick={handleSubscribe}
-          disabled={loading}
-          className="btn-primary w-full text-lg py-4 flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /> Redirecting to payment...</>
-          ) : (
-            `Subscribe ${selected === 'monthly' ? '£19.99/month' : '£199.99/year'} →`
-          )}
-        </button>
-
-        <p className="text-center text-xs text-white/20 mt-4">
-          Secure payment via Stripe. Cancel any time. No hidden fees.
-        </p>
+          )
+        })}
       </div>
+
+      {/* Error */}
+      {error && (
+        <p className="mt-5 text-red-400 text-sm">{error}</p>
+      )}
+
+      {/* CTA Button */}
+      <button
+        onClick={handleSubscribe}
+        disabled={loading}
+        className="mt-8 font-bold text-base px-10 py-4 rounded-2xl transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          background: loading ? 'rgba(34,197,94,0.5)' : '#22c55e',
+          color: '#000',
+          boxShadow: '0 0 30px rgba(34,197,94,0.35)',
+        }}
+      >
+        {loading ? 'Redirecting to checkout...' : `Subscribe ${PLANS[selected].name} — £${(PLANS[selected].price / 100).toFixed(2)}`}
+      </button>
+
+      <p className="mt-4 text-white/25 text-xs text-center max-w-xs">
+        Secure payment via Stripe. Cancel anytime. Your subscription helps fund real charities.
+      </p>
     </div>
   )
 }
